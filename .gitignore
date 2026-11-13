@@ -1,0 +1,7 @@
+venv/
+.env
+__pycache__/
+.pytest_cache/
+# User PDFs may be confidential: never commit them
+data/
+*.pdf

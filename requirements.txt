@@ -1,0 +1,6 @@
+streamlit
+ollama
+pypdf
+langchain-text-splitters
+numpy
+python-dotenv
