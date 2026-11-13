@@ -1,6 +1,8 @@
 streamlit
-ollama
+ollama==0.6.3
 pypdf
 langchain-text-splitters
 numpy
 python-dotenv
+anthropic[bedrock]==1.17.0
+google-genai==3.0.0

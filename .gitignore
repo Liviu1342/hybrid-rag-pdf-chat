@@ -5,3 +5,4 @@ __pycache__/
 # User PDFs may be confidential: never commit them
 data/
 *.pdf
+.vscode/

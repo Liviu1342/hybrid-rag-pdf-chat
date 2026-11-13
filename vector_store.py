@@ -1,5 +1,6 @@
 """In-memory vector store: cosine-similarity search, saved to disk as plain files."""
 
+import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -8,7 +9,9 @@ from typing import Self
 import numpy as np
 
 from embeddings import EmbeddingProvider
-from pdf_loader import Chunk
+from pdf_loader import Chunk, load_pages, split_into_chunks
+
+INDEX_ROOT = Path("data") / "index"  # git-ignored: it contains the PDF text
 
 
 class VectorStoreError(Exception):
@@ -78,30 +81,28 @@ class VectorStore:
         return store
 
 
+def load_or_build_index(pdf_path: Path, embedder: EmbeddingProvider) -> VectorStore:
+    """Load the saved index for this exact PDF content, or build and save it."""
+    pdf_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:16]
+    index_folder = INDEX_ROOT / pdf_hash
+    if index_folder.exists():
+        return VectorStore.load(index_folder, embedder)
+    store = VectorStore(embedder)
+    store.add(split_into_chunks(load_pages(pdf_path), source=pdf_path.name))
+    store.save(index_folder)
+    return store
+
+
 if __name__ == "__main__":
     import sys
     import time
-    import hashlib
 
     from embeddings import OllamaEmbeddings
-    from pdf_loader import load_pages, split_into_chunks
 
-    pdf_path = Path(sys.argv[1])
-    question = sys.argv[2]
-    pdf_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:16]
-    index_folder = Path("data") / "index" / pdf_hash
-    embedder = OllamaEmbeddings()
+    started = time.perf_counter()
+    store = load_or_build_index(Path(sys.argv[1]), OllamaEmbeddings())
+    print(f"Index ready: {len(store)} chunks in {time.perf_counter() - started:.1f} s")
 
-    if index_folder.exists():
-        store = VectorStore.load(index_folder, embedder)
-        print(f"Loaded saved index: {len(store)} chunks")
-    else:
-        started = time.perf_counter()
-        store = VectorStore(embedder)
-        store.add(split_into_chunks(load_pages(pdf_path), source=pdf_path.name))
-        store.save(index_folder)
-        print(f"Indexed {len(store)} chunks in {time.perf_counter() - started:.0f} s")
-
-    for chunk, score in store.search(question):
+    for chunk, score in store.search(sys.argv[2]):
         print(f"\n--- page {chunk.page}, score {score:.2f} ---")
         print(chunk.text[:300])
