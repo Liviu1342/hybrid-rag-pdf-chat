@@ -172,3 +172,7 @@ The tests use a fake embedder and a fake LLM, so they run in about a second with
 - [ ] OCR for scanned PDFs
 - [ ] Cloud embeddings option (e.g. Amazon Titan on Bedrock)
 - [ ] C# / .NET port with Microsoft.Extensions.AI
+
+## 📄 License
+
+MIT – see [LICENSE](LICENSE).
