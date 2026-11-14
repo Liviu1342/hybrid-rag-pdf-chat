@@ -227,3 +227,78 @@ class BedrockProvider:
         if isinstance(error, anthropic.APIStatusError):
             return LLMError(f"Bedrock returned an error ({error.status_code}): {error.message}")
         return LLMError("Could not connect to Bedrock. Check your internet connection.")
+
+
+class AnthropicProvider:
+    """Runs Claude through the Anthropic API directly (cloud, needs an API key)."""
+
+    # On a safety decline, the API re-runs the request on a suitable fallback model
+    FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "claude-sonnet-5-5",
+        max_tokens: int = 16_000,
+    ) -> None:
+        if not api_key:
+            raise LLMError("ANTHROPIC_API_KEY is missing. Add it to your .env file.")
+        self.name = f"Claude API ({model})"
+        self.model = model
+        self.max_tokens = max_tokens
+        # Retries 429/5xx and connection errors twice by itself
+        self._client = anthropic.Anthropic(api_key=api_key)
+
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        try:
+            response = self._client.beta.messages.create(
+                **self._request(system_prompt, user_prompt)
+            )
+        except anthropic.APIError as e:
+            raise self._friendly_error(e) from None
+
+        if response.stop_reason == "refusal":
+            raise LLMError("Claude declined to answer this question.")
+        content = "".join(block.text for block in response.content if block.type == "text")
+        if not content:
+            raise LLMError("Claude returned an empty response. Try again.")
+        return content
+
+    def stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
+        """Yield the answer piece by piece, as the model writes it."""
+        try:
+            with self._client.beta.messages.stream(
+                **self._request(system_prompt, user_prompt)
+            ) as stream:
+                yield from stream.text_stream
+                if stream.get_final_message().stop_reason == "refusal":
+                    raise LLMError("Claude declined to answer this question.")
+        except anthropic.APIError as e:
+            raise self._friendly_error(e) from None
+
+    def _request(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
+        """The request settings shared by generate() and stream()."""
+        return {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+            # Short factual answers: medium effort is enough and keeps cost low
+            "output_config": {"effort": "medium"},
+            "betas": [self.FALLBACK_BETA],
+            "fallbacks": "default",
+        }
+
+    def _friendly_error(self, error: anthropic.APIError) -> LLMError:
+        """Translate a technical Anthropic API error into a message the user understands."""
+        if isinstance(error, anthropic.AuthenticationError):
+            return LLMError("The Anthropic API key is invalid. Check ANTHROPIC_API_KEY in .env.")
+        if isinstance(error, anthropic.PermissionDeniedError):
+            return LLMError(f"This API key cannot use '{self.model}': {error.message}")
+        if isinstance(error, anthropic.NotFoundError):
+            return LLMError(f"Model '{self.model}' not found: {error.message}")
+        if isinstance(error, anthropic.RateLimitError):
+            return LLMError(f"Anthropic rate limit reached, wait a minute and try again: {error.message}")
+        if isinstance(error, anthropic.APIStatusError):
+            return LLMError(f"Anthropic API returned an error ({error.status_code}): {error.message}")
+        return LLMError("Could not connect to the Anthropic API. Check your internet connection.")

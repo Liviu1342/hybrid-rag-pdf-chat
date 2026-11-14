@@ -8,7 +8,14 @@ from dotenv import load_dotenv
 
 from embeddings import EmbeddingError, OllamaEmbeddings
 from pdf_loader import Chunk
-from providers import BedrockProvider, GeminiProvider, LLMError, LLMProvider, OllamaProvider
+from providers import (
+    AnthropicProvider,
+    BedrockProvider,
+    GeminiProvider,
+    LLMError,
+    LLMProvider,
+    OllamaProvider,
+)
 from rag_engine import NOT_FOUND, answer_question
 from vector_store import load_or_build_index
 
@@ -19,6 +26,7 @@ UPLOAD_FOLDER = Path("data") / "uploads"  # git-ignored, like the whole data/ fo
 OLLAMA = "🖥️ Ollama (local & private)"
 BEDROCK = "🪨 Bedrock (Claude, AWS cloud)"
 GEMINI = "☁️ Gemini (Google cloud)"
+CLAUDE = "🧠 Claude API (Anthropic, cloud)"
 
 
 def build_provider(choice: str) -> LLMProvider:
@@ -34,6 +42,11 @@ def build_provider(choice: str) -> LLMProvider:
             secret_key=os.getenv("AWS_SECRET_ACCESS_KEY", ""),
             model=os.getenv("BEDROCK_MODEL", "eu.anthropic.claude-sonnet-4-6"),
             region=os.getenv("AWS_REGION", "eu-north-1"),
+        )
+    if choice == CLAUDE:
+        return AnthropicProvider(
+            api_key=os.getenv("ANTHROPIC_API_KEY", ""),
+            model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
         )
     return GeminiProvider(
         api_key=os.getenv("GEMINI_API_KEY", ""),
@@ -58,7 +71,7 @@ st.caption("Answers come only from your document, with page citations.")
 # --- Sidebar: settings and upload ---
 with st.sidebar:
     st.header("⚙️ Settings")
-    engine = st.radio("AI engine", [OLLAMA, BEDROCK, GEMINI])
+    engine = st.radio("AI engine", [OLLAMA, BEDROCK, GEMINI, CLAUDE])
     uploaded = st.file_uploader("Upload a PDF", type="pdf")
 
 if uploaded is None:
