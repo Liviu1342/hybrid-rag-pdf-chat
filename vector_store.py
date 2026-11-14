@@ -37,6 +37,8 @@ class VectorStore:
 
     def add(self, chunks: list[Chunk]) -> None:
         """Embed the chunks and append them to the store."""
+        if not chunks:  # e.g. a scanned PDF with no extractable text
+            return
         raw = self._embedder.embed([chunk.text for chunk in chunks])
         new_vectors = _normalize(np.array(raw, dtype=np.float32))
         if len(self._chunks) == 0:
