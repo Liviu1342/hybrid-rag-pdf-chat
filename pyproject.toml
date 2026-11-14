@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]      # lets tests import utils.py, providers.py etc.
+testpaths = ["tests"]   # where to look for tests
+filterwarnings = [
+    # Third-party noise from langsmith (a langchain dependency) on Python 3.14
+    "ignore::DeprecationWarning:langsmith.*",
+]
+[tool.pyright]
+extraPaths = ["."]   # tells Pylance to look for modules in the project root
