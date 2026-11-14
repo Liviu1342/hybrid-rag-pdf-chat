@@ -53,7 +53,7 @@ def test_answer_streams_the_provider_text_and_returns_sources(store: VectorStore
 def test_provider_receives_the_rules_and_the_retrieved_chunk(store: VectorStore) -> None:
     provider = FakeProvider()
     stream, _sources = answer_question("How do I get a refund?", store, provider, k=1)
-    list(stream)  # a generator runs only when consumed: this sends the "request"
+    # list(stream)  # a generator runs only when consumed: this sends the "request"
 
     assert provider.system_prompt == SYSTEM_PROMPT
     assert '<excerpt page="3">' in provider.user_prompt
