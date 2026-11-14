@@ -17,6 +17,28 @@ Rules:
 5. Answer in the same language as the question."""
 
 
+REWRITE_PROMPT = """You rewrite follow-up questions for a document search engine.
+Using the conversation inside the <conversation> tags, rewrite the new question
+so that it can be understood on its own, without the conversation.
+Keep the language of the new question. If it is already standalone, return it unchanged.
+Reply with the rewritten question only."""
+
+MAX_HISTORY_MESSAGES = 4  # the last 2 question/answer pairs are enough context
+
+
+def rewrite_question(
+    question: str, history: list[tuple[str, str]], provider: LLMProvider
+) -> str:
+    """Turn a follow-up like "explain that" into a standalone search question."""
+    if not history:
+        return question  # first question: nothing to resolve, no extra LLM call
+    recent = history[-MAX_HISTORY_MESSAGES:]
+    turns = "\n".join(f"{role}: {text}" for role, text in recent)
+    user_prompt = f"<conversation>\n{turns}\n</conversation>\n\nNew question: {question}"
+    rewritten = provider.generate(REWRITE_PROMPT, user_prompt).strip()
+    return rewritten or question  # never search with an empty string
+
+
 def build_user_prompt(question: str, chunks: list[Chunk]) -> str:
     """Wrap every retrieved chunk in a tag that carries its page number."""
     excerpts = "\n\n".join(

@@ -16,7 +16,7 @@ from providers import (
     LLMProvider,
     OllamaProvider,
 )
-from rag_engine import NOT_FOUND, answer_question
+from rag_engine import NOT_FOUND, answer_question, rewrite_question
 from vector_store import load_or_build_index
 
 load_dotenv()  # read .env once, when the app starts
@@ -107,6 +107,8 @@ st.success(f"Ready: {uploaded.name} ({len(st.session_state['store'])} chunks)")
 for message in st.session_state["messages"]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        if message.get("searched_for"):
+            st.caption(f"🔎 Searched for: {message['searched_for']}")
         show_sources(message.get("sources", []))
 
 # --- New question ---
@@ -117,17 +119,23 @@ if question := st.chat_input("Ask something about the document"):
 
     with st.chat_message("assistant"):
         try:
-            stream, sources = answer_question(
-                question, st.session_state["store"], build_provider(engine)
-            )
+            provider = build_provider(engine)
+            # Everything said before this question (the question itself is the last item)
+            history = [(m["role"], m["content"]) for m in st.session_state["messages"][:-1]]
+            with st.spinner("Understanding the question..."):
+                search_query = rewrite_question(question, history, provider)
+            stream, sources = answer_question(search_query, st.session_state["store"], provider)
             answer = str(st.write_stream(stream))  # shows the text as it arrives
         except (LLMError, EmbeddingError) as error:
             st.error(str(error))
             st.stop()
+        searched_for = search_query if search_query != question else ""
+        if searched_for:
+            st.caption(f"🔎 Searched for: {searched_for}")
         if answer.strip() == NOT_FOUND:
             sources = []  # nothing relevant was found: don't show unrelated pages
         show_sources(sources)
 
     st.session_state["messages"].append(
-        {"role": "assistant", "content": answer, "sources": sources}
+        {"role": "assistant", "content": answer, "sources": sources, "searched_for": searched_for}
     )

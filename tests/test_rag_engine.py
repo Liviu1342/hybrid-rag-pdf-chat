@@ -3,7 +3,13 @@
 from collections.abc import Iterator
 
 from pdf_loader import Chunk
-from rag_engine import NOT_FOUND, SYSTEM_PROMPT, answer_question, build_user_prompt
+from rag_engine import (
+    NOT_FOUND,
+    SYSTEM_PROMPT,
+    answer_question,
+    build_user_prompt,
+    rewrite_question,
+)
 from vector_store import VectorStore
 
 
@@ -58,3 +64,52 @@ def test_provider_receives_the_rules_and_the_retrieved_chunk(store: VectorStore)
     assert provider.system_prompt == SYSTEM_PROMPT
     assert '<excerpt page="3">' in provider.user_prompt
     assert "Shipping" not in provider.user_prompt  # only the top-k chunks are sent
+
+
+class RewritingProvider:
+    """Fake LLM that always "rewrites" the question to a fixed text."""
+
+    name = "Fake rewriter"
+
+    def __init__(self, answer: str = "What is the refund policy?") -> None:
+        self.answer = answer
+        self.calls = 0
+        self.user_prompt = ""
+
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        self.calls += 1
+        self.user_prompt = user_prompt
+        return self.answer
+
+    def stream(self, system_prompt: str, user_prompt: str) -> Iterator[str]:
+        yield self.generate(system_prompt, user_prompt)
+
+
+def test_first_question_is_not_rewritten() -> None:
+    provider = RewritingProvider()
+    assert rewrite_question("What is the refund policy?", [], provider) == "What is the refund policy?"
+    assert provider.calls == 0  # no history: no extra LLM call
+
+
+def test_follow_up_is_rewritten_using_the_history() -> None:
+    provider = RewritingProvider()
+    history = [("user", "Tell me about refunds"), ("assistant", "Refunds take 30 days (page 3).")]
+
+    assert rewrite_question("Explain that more simply", history, provider) == "What is the refund policy?"
+    assert "assistant: Refunds take 30 days (page 3)." in provider.user_prompt
+    assert "New question: Explain that more simply" in provider.user_prompt
+
+
+def test_only_the_most_recent_messages_are_sent() -> None:
+    provider = RewritingProvider()
+    history = [("user", f"message {i}") for i in range(10)]
+    rewrite_question("And then?", history, provider)
+
+    assert "message 9" in provider.user_prompt
+    assert "message 5" not in provider.user_prompt  # older than the last 4
+
+
+def test_empty_rewrite_falls_back_to_the_original_question() -> None:
+    provider = RewritingProvider(answer="   ")
+    history = [("user", "Hi"), ("assistant", "Hello")]
+    assert rewrite_question("Explain that", history, provider) == "Explain that"

@@ -15,6 +15,7 @@ Chat with your own PDF documents. Every answer comes **only from the document**,
 - **Anti-hallucination prompt** – if the answer is not in the document, the model says so instead of guessing.
 - **Index cache keyed by content** – a 974-page book is indexed once (~85 s on a laptop GPU) and reloaded in 0.4 s afterwards.
 - **Live streaming** – answers appear word by word.
+- **Conversation memory (query rewriting)** – follow-ups like "explain that more simply" are rewritten into a standalone question using the last messages, then searched; the app shows what it searched for.
 
 ## 🏗️ How it works
 
@@ -160,12 +161,13 @@ The tests use a fake embedder and a fake LLM, so they run in about a second with
 ## ⚠️ Limitations
 
 - Scanned PDFs (images without a text layer) are not supported yet; they would need OCR.
-- Each question is answered on its own: follow-ups like "explain that more simply" do not see the previous turn yet.
+- Requests about the previous answer (translate it, summarize it) still trigger a new search, so sources may shift slightly; a small local model may also drop the request's intent when rewriting.
 - Purely semantic search can miss exact codes or identifiers (e.g. "ERR-4471").
 
 ## 🗺️ Roadmap
 
-- [ ] Conversation memory via query rewriting (turn follow-ups into standalone questions)
+- [x] Conversation memory via query rewriting (turn follow-ups into standalone questions)
+- [ ] Intent routing: answer "translate / summarize the previous answer" without a new search
 - [ ] Hybrid search: semantic + keyword (BM25)
 - [ ] OCR for scanned PDFs
 - [ ] Cloud embeddings option (e.g. Amazon Titan on Bedrock)
