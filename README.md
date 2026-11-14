@@ -4,7 +4,7 @@
 
 Chat with your own PDF documents. Every answer comes **only from the document**, with **page citations** and the exact source passages. Retrieval runs **100% locally with Ollama**, so the document never leaves your machine; the answer can be written by a local model or by Claude / Gemini in the cloud.
 
-![App screenshot](docs/screenshot.png)
+![App screenshot](docs/RAG_with_PDF.jpg)
 
 ## ✨ Features
 
