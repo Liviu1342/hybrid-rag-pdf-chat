@@ -2,7 +2,7 @@
 
 import pytest
 
-from pdf_loader import Chunk
+from documents import Chunk
 from vector_store import VectorStore
 
 
@@ -24,9 +24,9 @@ def store() -> VectorStore:
     vector_store = VectorStore(FakeEmbedder())
     vector_store.add(
         [
-            Chunk(text="Refund policy: refund within 30 days.", page=3, source="shop.pdf"),
-            Chunk(text="Shipping takes 5 days.", page=7, source="shop.pdf"),
-            Chunk(text="Our company was founded in 1999.", page=1, source="shop.pdf"),
+            Chunk(text="Refund policy: refund within 30 days.", location="page 3", source="shop.pdf"),
+            Chunk(text="Shipping takes 5 days.", location="page 7", source="shop.pdf"),
+            Chunk(text="Our company was founded in 1999.", location="page 1", source="shop.pdf"),
         ]
     )
     return vector_store

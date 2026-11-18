@@ -7,7 +7,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from embeddings import EmbeddingError, OllamaEmbeddings
-from pdf_loader import Chunk
+from documents import Chunk
 from providers import (
     AnthropicProvider,
     BedrockProvider,
@@ -60,7 +60,7 @@ def show_sources(sources: list[Chunk]) -> None:
         return
     with st.expander("📚 Sources from the document"):
         for chunk in sources:
-            st.markdown(f"**Page {chunk.page}**")
+            st.markdown(f"**{chunk.location.capitalize()}**")
             st.caption(chunk.text)
 
 

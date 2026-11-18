@@ -9,9 +9,11 @@ from typing import Self
 import numpy as np
 
 from embeddings import EmbeddingProvider
-from pdf_loader import Chunk, load_pages, split_into_chunks
+from documents import Chunk, split_into_chunks
+from pdf_loader import load_pdf
 
 INDEX_ROOT = Path("data") / "index"  # git-ignored: it contains the PDF text
+INDEX_VERSION = 2  # bump when the saved format changes: old indexes are rebuilt
 
 
 class VectorStoreError(Exception):
@@ -85,12 +87,13 @@ class VectorStore:
 
 def load_or_build_index(pdf_path: Path, embedder: EmbeddingProvider) -> VectorStore:
     """Load the saved index for this exact PDF content, or build and save it."""
-    pdf_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:16]
-    index_folder = INDEX_ROOT / pdf_hash
+    data = pdf_path.read_bytes()
+    pdf_hash = hashlib.sha256(data).hexdigest()[:16]
+    index_folder = INDEX_ROOT / f"v{INDEX_VERSION}-{pdf_hash}"
     if index_folder.exists():
         return VectorStore.load(index_folder, embedder)
     store = VectorStore(embedder)
-    store.add(split_into_chunks(load_pages(pdf_path), source=pdf_path.name))
+    store.add(split_into_chunks(load_pdf(data), source=pdf_path.name))
     store.save(index_folder)
     return store
 
@@ -106,5 +109,5 @@ if __name__ == "__main__":
     print(f"Index ready: {len(store)} chunks in {time.perf_counter() - started:.1f} s")
 
     for chunk, score in store.search(sys.argv[2]):
-        print(f"\n--- page {chunk.page}, score {score:.2f} ---")
+        print(f"\n--- {chunk.location}, score {score:.2f} ---")
         print(chunk.text[:300])

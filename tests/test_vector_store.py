@@ -11,7 +11,7 @@ from vector_store import VectorStore, VectorStoreError
 def test_search_returns_the_most_similar_chunk_first(store: VectorStore) -> None:
     results = store.search("How do I get a refund?", k=1)
     chunk, score = results[0]
-    assert chunk.page == 3
+    assert chunk.location == "page 3"
     assert score > 0.9
 
 
@@ -33,7 +33,7 @@ def test_saved_index_can_be_loaded_back(store: VectorStore, tmp_path: Path) -> N
     store.save(tmp_path)
     loaded = VectorStore.load(tmp_path, FakeEmbedder())
     assert len(loaded) == 3
-    assert loaded.search("shipping", k=1)[0][0].page == 7
+    assert loaded.search("shipping", k=1)[0][0].location == "page 7"
 
 
 def test_loading_with_another_model_is_refused(store: VectorStore, tmp_path: Path) -> None:
