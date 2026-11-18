@@ -29,6 +29,14 @@ def format_timestamp(total_seconds: int) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
+def location_to_seconds(location: str) -> int:
+    """Turn "05:30" into 330, and "1:05:30" into 3930 (the opposite of format_timestamp)."""
+    total = 0
+    for part in location.split(":"):
+        total = total * 60 + int(part)
+    return total
+
+
 def parse_cues(text: str) -> list[tuple[int, str]]:
     """Return (start_second, text) for every subtitle cue."""
     cues: list[tuple[int, str]] = []

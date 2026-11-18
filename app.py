@@ -18,7 +18,9 @@ from providers import (
     OllamaProvider,
 )
 from rag_engine import NOT_FOUND, answer_question, rewrite_question
-from vector_store import load_or_build_index
+from subtitle_loader import location_to_seconds
+from vector_store import load_or_build_index, load_or_build_youtube_index
+from youtube_loader import TranscriptError, extract_video_id
 
 load_dotenv()  # read .env once, when the app starts
 
@@ -61,48 +63,62 @@ def show_sources(sources: list[Chunk]) -> None:
         return
     with st.expander("📚 Sources from the document"):
         for chunk in sources:
-            st.markdown(f"**{chunk.location.capitalize()}**")
+            if chunk.source.startswith("https://youtu.be/"):
+                # A link that opens the video at the cited minute
+                seconds = location_to_seconds(chunk.location)
+                st.markdown(f"**[▶️ {chunk.location}]({chunk.source}?t={seconds})**")
+            else:
+                st.markdown(f"**{chunk.location.capitalize()}**")
             st.caption(chunk.text)
 
 
 st.set_page_config(page_title="Private Document Chat", page_icon="📚")
 st.title("📚 Chat with your documents")
-st.caption("PDFs, subtitles and text files. Answers come only from your document, with citations.")
+st.caption("PDFs, subtitles, text files and YouTube videos. Answers come only from your source, with citations.")
 
 # --- Sidebar: settings and upload ---
 with st.sidebar:
     st.header("⚙️ Settings")
     engine = st.radio("AI engine", [OLLAMA, BEDROCK, GEMINI, CLAUDE])
     uploaded = st.file_uploader("Upload a document", type=SUPPORTED_EXTENSIONS)
+    youtube_url = st.text_input("...or paste a YouTube link").strip()
 
-if uploaded is None:
-    st.info("Upload a document in the sidebar to start.")
-    st.stop()  # nothing else to draw until there is a document
+# The uploaded file wins if both are given
+source_name = uploaded.name if uploaded is not None else youtube_url
+if not source_name:
+    st.info("Upload a document or paste a YouTube link in the sidebar to start.")
+    st.stop()  # nothing else to draw until there is a source
 
-# --- Index the document once per new file ---
-if st.session_state.get("doc_name") != uploaded.name:
-    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-    # Keep only the file name: a crafted name like "../../x.pdf" must not escape the folder
-    file_path = UPLOAD_FOLDER / Path(uploaded.name).name
-    file_path.write_bytes(uploaded.getvalue())
+# --- Index the source once per new file or link ---
+if st.session_state.get("doc_name") != source_name:
     try:
-        with st.spinner("Indexing the document (only the first time, may take a minute)..."):
+        with st.spinner("Indexing (only the first time, may take a minute)..."):
             embedder = OllamaEmbeddings(
                 model=os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
                 host=os.getenv("OLLAMA_HOST"),
             )
-            store = load_or_build_index(file_path, embedder)
-    except (EmbeddingError, UnsupportedFileError) as error:
+            if uploaded is not None:
+                UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+                # Keep only the file name: "../../x.pdf" must not escape the folder
+                file_path = UPLOAD_FOLDER / Path(uploaded.name).name
+                file_path.write_bytes(uploaded.getvalue())
+                store = load_or_build_index(file_path, embedder)
+            else:
+                video_id = extract_video_id(youtube_url)
+                if video_id is None:
+                    raise TranscriptError("This is not a valid YouTube link.")
+                store = load_or_build_youtube_index(video_id, embedder)
+    except (EmbeddingError, UnsupportedFileError, TranscriptError) as error:
         st.error(str(error))
         st.stop()
     if len(store) == 0:
-        st.error("No text found in this file (is it a scanned PDF?).")
+        st.error("No text found (a scanned PDF, or a video without speech?).")
         st.stop()
     st.session_state["store"] = store
-    st.session_state["doc_name"] = uploaded.name
+    st.session_state["doc_name"] = source_name
     st.session_state["messages"] = []  # new document, new conversation
 
-st.success(f"Ready: {uploaded.name} ({len(st.session_state['store'])} chunks)")
+st.success(f"Ready: {source_name} ({len(st.session_state['store'])} chunks)")
 
 # --- Chat history: Streamlit redraws the page on every interaction ---
 for message in st.session_state["messages"]:

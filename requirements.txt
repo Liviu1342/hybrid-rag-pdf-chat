@@ -6,3 +6,4 @@ numpy==2.5.4
 python-dotenv==1.2.4
 anthropic[bedrock]==1.17.0
 google-genai==3.0.0
+youtube-transcript-api==1.2.5

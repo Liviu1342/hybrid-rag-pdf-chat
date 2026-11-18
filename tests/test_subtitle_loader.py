@@ -1,7 +1,7 @@
 """Tests for reading .srt / .vtt subtitles into one-minute sections."""
 
 from documents import Section
-from subtitle_loader import format_timestamp, load_subtitles, parse_timestamp
+from subtitle_loader import format_timestamp, load_subtitles, location_to_seconds, parse_timestamp
 
 SRT = """1
 00:00:01,000 --> 00:00:04,000
@@ -34,6 +34,11 @@ def test_timestamps_are_formatted_like_a_video_player() -> None:
     assert format_timestamp(330) == "05:30"
     assert format_timestamp(3930) == "1:05:30"
 
+
+def test_location_converts_back_to_seconds() -> None:
+    assert location_to_seconds("05:30") == 330
+    assert location_to_seconds("1:05:30") == 3930
+    
 
 def test_srt_cues_are_grouped_per_minute_without_tags() -> None:
     assert load_subtitles(SRT.encode()) == [
