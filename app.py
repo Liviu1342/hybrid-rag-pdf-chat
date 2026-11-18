@@ -1,4 +1,4 @@
-"""Streamlit chat interface: upload a PDF, then ask questions about it."""
+"""Streamlit chat interface: upload a document, then ask questions about it."""
 
 import os
 from pathlib import Path
@@ -6,8 +6,9 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 
-from embeddings import EmbeddingError, OllamaEmbeddings
 from documents import Chunk
+from embeddings import EmbeddingError, OllamaEmbeddings
+from loaders import SUPPORTED_EXTENSIONS, UnsupportedFileError
 from providers import (
     AnthropicProvider,
     BedrockProvider,
@@ -64,41 +65,41 @@ def show_sources(sources: list[Chunk]) -> None:
             st.caption(chunk.text)
 
 
-st.set_page_config(page_title="Private PDF Chat", page_icon="📚")
-st.title("📚 Chat with your PDF")
-st.caption("Answers come only from your document, with page citations.")
+st.set_page_config(page_title="Private Document Chat", page_icon="📚")
+st.title("📚 Chat with your documents")
+st.caption("PDFs, subtitles and text files. Answers come only from your document, with citations.")
 
 # --- Sidebar: settings and upload ---
 with st.sidebar:
     st.header("⚙️ Settings")
     engine = st.radio("AI engine", [OLLAMA, BEDROCK, GEMINI, CLAUDE])
-    uploaded = st.file_uploader("Upload a PDF", type="pdf")
+    uploaded = st.file_uploader("Upload a document", type=SUPPORTED_EXTENSIONS)
 
 if uploaded is None:
-    st.info("Upload a PDF in the sidebar to start.")
+    st.info("Upload a document in the sidebar to start.")
     st.stop()  # nothing else to draw until there is a document
 
-# --- Index the PDF once per new file ---
-if st.session_state.get("pdf_name") != uploaded.name:
+# --- Index the document once per new file ---
+if st.session_state.get("doc_name") != uploaded.name:
     UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
     # Keep only the file name: a crafted name like "../../x.pdf" must not escape the folder
-    pdf_path = UPLOAD_FOLDER / Path(uploaded.name).name
-    pdf_path.write_bytes(uploaded.getvalue())
+    file_path = UPLOAD_FOLDER / Path(uploaded.name).name
+    file_path.write_bytes(uploaded.getvalue())
     try:
-        with st.spinner("Indexing the PDF (only the first time, may take a minute)..."):
+        with st.spinner("Indexing the document (only the first time, may take a minute)..."):
             embedder = OllamaEmbeddings(
                 model=os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text"),
                 host=os.getenv("OLLAMA_HOST"),
             )
-            store = load_or_build_index(pdf_path, embedder)
-    except EmbeddingError as error:
+            store = load_or_build_index(file_path, embedder)
+    except (EmbeddingError, UnsupportedFileError) as error:
         st.error(str(error))
         st.stop()
     if len(store) == 0:
-        st.error("No text found in this PDF (is it a scanned image?).")
+        st.error("No text found in this file (is it a scanned PDF?).")
         st.stop()
     st.session_state["store"] = store
-    st.session_state["pdf_name"] = uploaded.name
+    st.session_state["doc_name"] = uploaded.name
     st.session_state["messages"] = []  # new document, new conversation
 
 st.success(f"Ready: {uploaded.name} ({len(st.session_state['store'])} chunks)")
