@@ -9,6 +9,7 @@ Chat with your own documents, e-books, videos and web pages. Every answer comes 
 ## ✨ Features
 
 - **Many sources, one pipeline** – PDF, Word, PowerPoint, EPUB e-books, plain text, `.srt` / `.vtt` subtitles, YouTube videos and public web pages.
+- **Several sources in one chat** – upload many files and paste many links; one search covers all of them, and every citation names its source, e.g. `(manual.pdf, page 12)`.
 - **Automatic source detection** – upload a file or paste a link: the app picks the right loader from the extension (checked against the file's content) or recognizes a YouTube link.
 - **Precise citations** – `(page 12)` for PDFs, `(05:30)` for videos with a clickable link that opens the video at that minute, `(slide 7)` for slides, `(Refund policy, paragraph 4)` for Word, e-books and web pages.
 - **Retrieval-Augmented Generation (RAG)** built from first principles: chunking, embeddings, cosine-similarity search and grounded generation.
@@ -140,7 +141,7 @@ Fill in `.env` only for the cloud engines you want to use. Local mode needs no k
 streamlit run app.py
 ```
 
-Upload a file or paste a link (YouTube video or web page) in the sidebar, wait for indexing (first time only), then ask questions.
+Upload one or more files and/or paste links (one per line) in the sidebar, wait for indexing (first time only), then ask questions.
 
 ## ⚙️ Configuration
 
@@ -213,7 +214,7 @@ python -m pytest -v
 - [x] Conversation memory via query rewriting (turn follow-ups into standalone questions)
 - [x] Multiple sources: Word, PowerPoint, EPUB, subtitles, YouTube, web pages, plain text
 - [ ] Intent routing: answer "translate / summarize the previous answer" without a new search
-- [ ] Several sources in one conversation
+- [x] Several sources in one conversation
 - [ ] Hybrid search: semantic + keyword (BM25)
 - [ ] OCR for scanned PDFs
 - [ ] Cloud embeddings option (e.g. Amazon Titan on Bedrock)
