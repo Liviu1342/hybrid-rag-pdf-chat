@@ -1,4 +1,4 @@
-# 📚 Hybrid RAG PDF Chat
+# 📚 Hybrid RAG Document Chat
 
 [![Tests](https://github.com/Liviu1342/hybrid-rag-pdf-chat/actions/workflows/tests.yml/badge.svg)](https://github.com/Liviu1342/hybrid-rag-pdf-chat/actions/workflows/tests.yml)
 
