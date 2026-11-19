@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from documents import Section
+from office_loader import load_docx, load_pptx
 from pdf_loader import load_pdf
 from subtitle_loader import load_subtitles
 from text_loader import load_text
@@ -16,6 +17,8 @@ LOADERS: dict[str, Loader] = {
     ".srt": load_subtitles,
     ".vtt": load_subtitles,
     ".txt": load_text,
+    ".docx": load_docx,
+    ".pptx": load_pptx,
 }
 
 SUPPORTED_EXTENSIONS = [extension.lstrip(".") for extension in LOADERS]  # for the uploader
@@ -23,6 +26,8 @@ SUPPORTED_EXTENSIONS = [extension.lstrip(".") for extension in LOADERS]  # for t
 # "Magic bytes": how the content of a real file of this type starts
 SIGNATURES: dict[str, bytes] = {
     ".pdf": b"%PDF",
+    ".docx": b"PK\x03\x04",  # Office files are ZIP archives of XML files
+    ".pptx": b"PK\x03\x04",
 }
 TEXT_EXTENSIONS = {".srt", ".vtt", ".txt"}
 

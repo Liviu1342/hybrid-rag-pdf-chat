@@ -13,7 +13,7 @@ def test_loader_is_chosen_by_extension_ignoring_case() -> None:
 
 
 def test_uploader_list_contains_every_supported_type() -> None:
-    assert SUPPORTED_EXTENSIONS == ["pdf", "srt", "vtt", "txt"]
+    assert SUPPORTED_EXTENSIONS == ["pdf", "srt", "vtt", "txt", "docx", "pptx"]
 
 
 def test_unknown_extension_is_refused() -> None:
@@ -24,6 +24,11 @@ def test_unknown_extension_is_refused() -> None:
 def test_fake_pdf_is_refused() -> None:
     with pytest.raises(UnsupportedFileError, match="does not look like a real .pdf"):
         load_document("invoice.pdf", b"MZ this is really a program")
+
+
+def test_fake_word_file_is_refused() -> None:
+    with pytest.raises(UnsupportedFileError, match="does not look like a real .docx"):
+        load_document("report.docx", b"%PDF-1.7 a PDF renamed to .docx")
 
 
 def test_binary_file_renamed_to_txt_is_refused() -> None:
