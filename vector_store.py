@@ -52,6 +52,25 @@ class VectorStore:
             self._vectors = np.vstack([self._vectors, new_vectors])
         self._chunks.extend(chunks)
 
+    @classmethod
+    def combine(cls, stores: list[Self]) -> Self:
+        """Join several stores into one, so a single search covers all of them.
+
+        Each source keeps its own cached index on disk; combining only stacks
+        the vectors already computed, so nothing is embedded again.
+        """
+        if not stores:
+            raise VectorStoreError("There is nothing to combine.")
+        embedder = stores[0]._embedder
+        if any(store._embedder.model_name != embedder.model_name for store in stores):
+            raise VectorStoreError("All sources must be indexed with the same embedding model.")
+        combined = cls(embedder)
+        filled = [store for store in stores if len(store) > 0]
+        if filled:
+            combined._vectors = np.vstack([store._vectors for store in filled])
+            combined._chunks = [chunk for store in filled for chunk in store._chunks]
+        return combined
+
     def search(self, query: str, k: int = 4) -> list[tuple[Chunk, float]]:
         """Return the k chunks most similar to the query, best first."""
         if len(self._chunks) == 0:

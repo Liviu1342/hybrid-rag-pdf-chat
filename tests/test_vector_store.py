@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from conftest import FakeEmbedder
+from documents import Chunk
 from vector_store import VectorStore, VectorStoreError
 
 
@@ -44,3 +45,21 @@ def test_loading_with_another_model_is_refused(store: VectorStore, tmp_path: Pat
 
     with pytest.raises(VectorStoreError, match="Re-index"):
         VectorStore.load(tmp_path, OtherEmbedder())
+
+
+def test_combined_store_searches_every_source(store: VectorStore) -> None:
+    other = VectorStore(FakeEmbedder())
+    other.add([Chunk(text="Refunds for shipping costs.", location="slide 2", source="deck.pptx")])
+    combined = VectorStore.combine([store, other])
+
+    assert len(combined) == 4
+    best, _score = combined.search("refund of shipping", k=1)[0]  # only the deck has both words
+    assert (best.source, best.location) == ("deck.pptx", "slide 2")
+
+
+def test_combining_stores_from_different_models_is_refused(store: VectorStore) -> None:
+    class OtherEmbedder(FakeEmbedder):
+        model_name = "other-model"
+
+    with pytest.raises(VectorStoreError, match="same embedding model"):
+        VectorStore.combine([store, VectorStore(OtherEmbedder())])
