@@ -12,6 +12,7 @@ import numpy as np
 from embeddings import EmbeddingProvider
 from documents import Chunk, Section, split_into_chunks
 from loaders import load_document
+from web_loader import fetch_page, load_web_page
 from youtube_loader import load_youtube
 
 INDEX_ROOT = Path("data") / "index"  # git-ignored: it contains the document text
@@ -124,6 +125,12 @@ def load_or_build_youtube_index(video_id: str, embedder: EmbeddingProvider) -> V
         lambda: load_youtube(video_id),
         embedder,
     )
+
+
+def load_or_build_web_index(url: str, embedder: EmbeddingProvider) -> VectorStore:
+    """Index a public web page, keyed by its content: a changed page is indexed again."""
+    final_url, html = fetch_page(url)  # always downloaded, to notice changes
+    return _load_or_build(html, final_url, lambda: load_web_page(html), embedder)
 
 
 if __name__ == "__main__":

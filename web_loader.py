@@ -11,10 +11,16 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+from documents import Section, group_paragraphs
+from html_text import SKIPPED_TAGS, html_to_paragraphs
+
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB: far more than any article, far less than a disk
 TIMEOUT_SECONDS = 10
 MAX_REDIRECTS = 3
 ALLOWED_CONTENT_TYPES = ("text/html", "application/xhtml+xml", "text/plain")
+
+# Menus, headers, footers and forms repeat on every page and are not the article
+WEB_SKIPPED_TAGS = SKIPPED_TAGS | {"nav", "header", "footer", "aside", "form", "noscript", "svg", "button"}
 
 
 class WebPageError(Exception):
@@ -70,3 +76,9 @@ def fetch_page(url: str) -> tuple[str, bytes]:
                     raise WebPageError("The page is larger than 5 MB.")
             return url, bytes(content)
     raise WebPageError("Too many redirects.")
+
+
+def load_web_page(html: bytes) -> list[Section]:
+    """Return the article text, located as "Getting started, paragraph 4"."""
+    paragraphs = html_to_paragraphs(html.decode("utf-8", errors="replace"), WEB_SKIPPED_TAGS)
+    return group_paragraphs(paragraphs)

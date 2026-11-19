@@ -6,7 +6,8 @@ from collections.abc import Iterator
 import pytest
 
 import web_loader
-from web_loader import MAX_BYTES, WebPageError, fetch_page, validate_url
+from documents import Section
+from web_loader import MAX_BYTES, WebPageError, fetch_page, load_web_page, validate_url
 
 # What our fake DNS answers for each host name
 FAKE_DNS = {
@@ -104,3 +105,13 @@ def test_non_html_content_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     serve(monkeypatch, {"https://example.com/file": pdf})
     with pytest.raises(WebPageError, match="not a web page"):
         fetch_page("https://example.com/file")
+
+
+def test_web_page_text_skips_menus_and_footers() -> None:
+    html = (
+        b"<nav><a>Home</a></nav><h1>Getting started</h1>"
+        b"<p>Install the app.</p><footer>Copyright 2026</footer>"
+    )
+    assert load_web_page(html) == [
+        Section("Getting started\nInstall the app.", "Getting started, paragraph 1"),
+    ]

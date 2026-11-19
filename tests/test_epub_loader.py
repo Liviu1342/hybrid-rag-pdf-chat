@@ -5,7 +5,7 @@ from io import BytesIO
 from ebooklib import epub
 
 from documents import Section
-from epub_loader import ParagraphParser, load_epub
+from epub_loader import load_epub
 
 
 def make_epub(chapters: list[str]) -> bytes:
@@ -27,13 +27,6 @@ def make_epub(chapters: list[str]) -> bytes:
     buffer = BytesIO()
     epub.write_epub(buffer, book)
     return buffer.getvalue()
-
-
-def test_parser_keeps_visible_text_and_marks_headings() -> None:
-    parser = ParagraphParser()
-    parser.feed("<head><title>Ignored</title></head><h1>Refunds</h1><p>Within <b>30</b>\n days.</p>")
-    parser.close()
-    assert parser.paragraphs == [("Refunds", True), ("Within 30 days.", False)]
 
 
 def test_chapters_are_read_in_order_without_the_table_of_contents() -> None:
