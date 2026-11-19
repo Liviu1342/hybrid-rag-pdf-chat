@@ -6,48 +6,18 @@ from docx import Document
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
 
-from documents import Section
-
-PARAGRAPHS_PER_SECTION = 20  # a long chapter without sub-headings is still split
-
+from documents import Section, group_paragraphs
 
 def load_docx(data: bytes) -> list[Section]:
-    """Return sections split at every heading, located as "Refund policy, paragraph 12".
-
-    Word has no fixed pages (they depend on the printer), so we cite the
-    nearest heading plus the paragraph number, which works in any viewer.
-    """
+    """Return sections split at every heading, located as "Refund policy, paragraph 12"."""
     document = Document(BytesIO(data))
-    sections: list[Section] = []
-    heading = ""  # the last heading seen; empty before the first one
-    texts: list[str] = []
-    first_paragraph = 0
-    number = 0  # counts only paragraphs that contain text
-
-    def flush() -> None:
-        """Turn the collected paragraphs into one section."""
-        if texts:
-            where = f"paragraph {first_paragraph}"
-            location = f"{heading}, {where}" if heading else where
-            sections.append(Section("\n".join(texts), location))
-            texts.clear()
-
+    paragraphs: list[tuple[str, bool]] = []
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
-        if not text:
-            continue
-        number += 1
-        style = getattr(paragraph.style, "name", None) or ""  # e.g. "Heading 1", "Normal"
-        if style.startswith(("Heading", "Title")):
-            flush()  # a new heading starts a new section
-            heading = text
-        elif len(texts) >= PARAGRAPHS_PER_SECTION:
-            flush()
-        if not texts:
-            first_paragraph = number
-        texts.append(text)
-    flush()
-    return sections
+        if text:  # skip empty lines
+            style = getattr(paragraph.style, "name", None) or ""  # e.g. "Heading 1", "Normal"
+            paragraphs.append((text, style.startswith(("Heading", "Title"))))
+    return group_paragraphs(paragraphs)
 
 
 def load_pptx(data: bytes) -> list[Section]:

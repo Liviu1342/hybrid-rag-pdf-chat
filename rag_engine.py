@@ -8,7 +8,7 @@ from vector_store import VectorStore
 
 NOT_FOUND = "I could not find this in the document."
 
-SYSTEM_PROMPT = f"""You answer questions about a document (a PDF, a Word file, slides, a transcript or a text file).
+SYSTEM_PROMPT = f"""You answer questions about a document (a PDF, a Word file, slides, an e-book, a transcript or a text file).
 Rules:
 1. Use ONLY the excerpts inside the <context> tags. Do not use outside knowledge.
 2. If the excerpts do not contain the answer, reply exactly: "{NOT_FOUND}"

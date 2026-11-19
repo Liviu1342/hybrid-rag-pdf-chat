@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from documents import Section
+from epub_loader import load_epub
 from office_loader import load_docx, load_pptx
 from pdf_loader import load_pdf
 from subtitle_loader import load_subtitles
@@ -19,6 +20,7 @@ LOADERS: dict[str, Loader] = {
     ".txt": load_text,
     ".docx": load_docx,
     ".pptx": load_pptx,
+    ".epub": load_epub,
 }
 
 SUPPORTED_EXTENSIONS = [extension.lstrip(".") for extension in LOADERS]  # for the uploader
@@ -28,6 +30,7 @@ SIGNATURES: dict[str, bytes] = {
     ".pdf": b"%PDF",
     ".docx": b"PK\x03\x04",  # Office files are ZIP archives of XML files
     ".pptx": b"PK\x03\x04",
+    ".epub": b"PK\x03\x04",  # an e-book is also a ZIP archive
 }
 TEXT_EXTENSIONS = {".srt", ".vtt", ".txt"}
 

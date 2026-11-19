@@ -13,7 +13,7 @@ def test_loader_is_chosen_by_extension_ignoring_case() -> None:
 
 
 def test_uploader_list_contains_every_supported_type() -> None:
-    assert SUPPORTED_EXTENSIONS == ["pdf", "srt", "vtt", "txt", "docx", "pptx"]
+    assert SUPPORTED_EXTENSIONS == ["pdf", "srt", "vtt", "txt", "docx", "pptx", "epub"]
 
 
 def test_unknown_extension_is_refused() -> None:

@@ -74,7 +74,7 @@ def show_sources(sources: list[Chunk]) -> None:
 
 st.set_page_config(page_title="Private Document Chat", page_icon="📚")
 st.title("📚 Chat with your documents")
-st.caption("PDF, Word, PowerPoint, subtitles, text and YouTube. Answers come only from your source, with citations.")
+st.caption("PDF, Word, PowerPoint, e-books, subtitles, text and YouTube. Answers come only from your source, with citations.")
 
 # --- Sidebar: settings and upload ---
 with st.sidebar:

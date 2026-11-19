@@ -6,8 +6,8 @@ from docx import Document
 from pptx import Presentation
 from pptx.util import Inches
 
-from documents import Section
-from office_loader import PARAGRAPHS_PER_SECTION, load_docx, load_pptx
+from documents import PARAGRAPHS_PER_SECTION, Section
+from office_loader import load_docx, load_pptx
 
 
 def test_docx_is_split_at_headings() -> None:
